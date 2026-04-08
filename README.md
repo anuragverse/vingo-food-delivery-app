@@ -156,7 +156,7 @@ Users can browse restaurants, food categories, and popular dishes.
 
 Users can track their active order and monitor delivery progress.
 
-![Current Order Tracking](./screenshots/current-order.png)
+![Current Order Tracking](./screenshots/order-tracking.png)
 
 ---
 
