@@ -1,4 +1,4 @@
-# 🍔 Vingo - Food Delivery Web Application
+# Delicious - Food Delivery Web Application
 
 ## 📌 Overview
 
