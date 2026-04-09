@@ -164,7 +164,7 @@ Users can track their active order and monitor delivery progress.
 
 Delivery partners can view assigned orders, active deliveries, and earnings.
 
-![Delivery Partner Dashboard](./screenshots/delivery-dashboard.png)
+![Delivery Partner Dashboard](screenshots/deliverydashboard.png)
 
 ---
 
@@ -172,7 +172,7 @@ Delivery partners can view assigned orders, active deliveries, and earnings.
 
 Restaurant owners can manage their restaurant profile, food items, and orders.
 
-![Restaurant Owner Dashboard](./screenshots/restaurant-dashboard.png)
+![Restaurant Owner Dashboard](screenshots/ownerdashboard.png)
 
 ---
 
