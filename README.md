@@ -2,7 +2,7 @@
 
 ## 📌 Overview
 
-Vingo is a full-stack **food delivery web application** built using the **MERN stack**. It allows users to browse restaurants, place food orders, track deliveries, and make payments online. The platform also provides dedicated dashboards for **restaurant owners** and **delivery partners** to manage their operations efficiently.
+Delicious is a full-stack **food delivery web application** built using the **MERN stack**. It allows users to browse restaurants, place food orders, track deliveries, and make payments online. The platform also provides dedicated dashboards for **restaurant owners** and **delivery partners** to manage their operations efficiently.
 
 ---
 
@@ -74,8 +74,8 @@ Vingo is a full-stack **food delivery web application** built using the **MERN s
 ### 1. Clone the repository
 
 ```bash id="r89c8g"
-git clone https://github.com/anuragverse/vingo-food-delivery-app.git
-cd vingo-food-delivery-app
+git clone https://github.com/anuragverse/delicious-food-delivery-app.git
+cd delicious-food-delivery-app
 ```
 
 ### 2. Install dependencies
