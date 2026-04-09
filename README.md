@@ -148,7 +148,7 @@ VITE_SERVER_URL=
 
 Users can browse restaurants, food categories, and popular dishes.
 
-![User Home Page](.screenshots/homepage.png)
+![User Home Page](screenshots/homepage.png)
 
 ---
 
