@@ -9,9 +9,9 @@ function Footer() {
 
         {/* Brand Section */}
         <div>
-          <h2 className='text-3xl font-bold text-[#ff4d2d]'>Vingo</h2>
+          <h2 className='text-3xl font-bold text-[#ff4d2d]'>Delicious</h2>
           <p className='mt-3 text-gray-600 leading-7 text-sm'>
-            Vingo is a smart food delivery platform that connects users,
+            Delicious is a smart food delivery platform that connects users,
             restaurant owners, and delivery partners in one seamless real-time experience.
           </p>
         </div>
@@ -58,7 +58,7 @@ function Footer() {
 
       {/* Bottom Bar */}
       <div className='border-t border-orange-100 py-4 px-6 text-center text-sm text-gray-500 bg-[#fff9f6]'>
-        © {new Date().getFullYear()} <span className='font-semibold text-[#ff4d2d]'>Vingo</span>. All rights reserved. Built with MERN Stack.
+        © {new Date().getFullYear()} <span className='font-semibold text-[#ff4d2d]'>Delicious</span>. All rights reserved. Built with MERN Stack.
       </div>
     </footer>
   )

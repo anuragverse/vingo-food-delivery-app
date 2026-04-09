@@ -16,10 +16,14 @@ import { serverUrl } from '../App';
 import { addMyOrder } from '../redux/userSlice';
 
 function RecenterMap({ location }) {
-  if (location?.lat && location?.lon) {
-    const map = useMap()
-    map.setView([location.lat, location.lon], 16, { animate: true })
-  }
+  const map = useMap()
+
+  useEffect(() => {
+    if (location?.lat && location?.lon) {
+      map.setView([location.lat, location.lon], 16, { animate: true })
+    }
+  }, [location, map])
+
   return null
 }
 
@@ -30,6 +34,8 @@ function CheckOut() {
   const [addressInput, setAddressInput] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("cod")
   const [loading, setLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -64,7 +70,9 @@ function CheckOut() {
         `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&format=json&apiKey=${apiKey}`
       )
 
-      dispatch(setAddress(result?.data?.results?.[0]?.address_line2 || ""))
+      const resolvedAddress = result?.data?.results?.[0]?.formatted || result?.data?.results?.[0]?.address_line2 || ""
+      dispatch(setAddress(resolvedAddress))
+      setAddressInput(resolvedAddress)
     } catch (error) {
       console.log("Reverse geocode error:", error)
     }
@@ -81,11 +89,45 @@ function CheckOut() {
       const feature = result?.data?.features?.[0]
       if (!feature) return
 
-      const { lat, lon } = feature.properties
+      const { lat, lon, formatted } = feature.properties
       dispatch(setLocation({ lat, lon }))
+      dispatch(setAddress(formatted || addressInput))
+      setAddressInput(formatted || addressInput)
+      setSuggestions([])
+      setShowSuggestions(false)
     } catch (error) {
       console.log("Forward geocode error:", error)
     }
+  }
+
+  const fetchAddressSuggestions = async (text) => {
+    try {
+      if (!text.trim()) {
+        setSuggestions([])
+        return
+      }
+
+      const result = await axios.get(
+        `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(text)}&limit=5&apiKey=${apiKey}`
+      )
+
+      setSuggestions(result?.data?.features || [])
+      setShowSuggestions(true)
+    } catch (error) {
+      console.log("Autocomplete error:", error)
+    }
+  }
+
+  const handleSelectSuggestion = (place) => {
+    const lat = place.properties.lat
+    const lon = place.properties.lon
+    const formattedAddress = place.properties.formatted
+
+    setAddressInput(formattedAddress)
+    dispatch(setLocation({ lat, lon }))
+    dispatch(setAddress(formattedAddress))
+    setSuggestions([])
+    setShowSuggestions(false)
   }
 
   const handlePlaceOrder = async () => {
@@ -102,8 +144,6 @@ function CheckOut() {
         foodType: item.foodType
       }))
 
-      console.log("CLEANED CART ITEMS:", cleanedCartItems)
-
       const result = await axios.post(
         `${serverUrl}/api/order/place-order`,
         {
@@ -118,8 +158,6 @@ function CheckOut() {
         },
         { withCredentials: true }
       )
-
-      console.log("PLACE ORDER RESPONSE:", result.data)
 
       if (paymentMethod === "cod") {
         dispatch(addMyOrder(result.data))
@@ -154,14 +192,12 @@ function CheckOut() {
       key: key || import.meta.env.VITE_RAZORPAY_KEY_ID,
       amount: razorOrder.amount,
       currency: razorOrder.currency || "INR",
-      name: "Vingo",
+      name: "Delicious",
       description: "Food Delivery Website",
       order_id: razorOrder.id,
 
       handler: async function (response) {
         try {
-          console.log("RAZORPAY RESPONSE:", response)
-
           const result = await axios.post(
             `${serverUrl}/api/order/verify-payment`,
             {
@@ -172,8 +208,6 @@ function CheckOut() {
             },
             { withCredentials: true }
           )
-
-          console.log("VERIFY PAYMENT RESPONSE:", result.data)
 
           dispatch(addMyOrder(result?.data?.order))
           navigate("/order-placed")
@@ -203,48 +237,76 @@ function CheckOut() {
   }, [address])
 
   return (
-    <div className='min-h-screen bg-[#fff9f6] flex items-center justify-center p-6'>
+    <div className='min-h-screen bg-[#fff9f6] flex items-center justify-center px-4 py-6'>
       <div
-        className='absolute top-[20px] left-[20px] z-[10] cursor-pointer'
+        className='absolute top-[20px] left-[20px] z-[10] cursor-pointer transition-transform hover:scale-110'
         onClick={() => navigate("/")}
       >
         <IoIosArrowRoundBack size={35} className='text-[#ff4d2d]' />
       </div>
 
-      <div className='w-full max-w-[900px] bg-white rounded-2xl shadow-xl p-6 space-y-6'>
-        <h1 className='text-2xl font-bold text-gray-800'>Checkout</h1>
+      <div className='w-full max-w-[950px] bg-white rounded-3xl shadow-xl border border-[#ffe5de] p-6 md:p-8 space-y-8'>
 
-        <section>
-          <h2 className='text-lg font-semibold mb-2 flex items-center gap-2 text-gray-800'>
+        {/* Heading */}
+        <div className='flex flex-col gap-1'>
+          <h1 className='text-3xl font-bold text-gray-800'>Checkout</h1>
+          <p className='text-gray-500 text-sm'>Confirm your address, payment and place your order</p>
+        </div>
+
+        {/* Delivery Location */}
+        <section className='space-y-4'>
+          <h2 className='text-lg font-semibold flex items-center gap-2 text-gray-800'>
             <IoLocationSharp className='text-[#ff4d2d]' /> Delivery Location
           </h2>
 
-          <div className='flex gap-2 mb-3'>
-            <input
-              type="text"
-              className='flex-1 border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff4d2d]'
-              placeholder='Enter Your Delivery Address..'
-              value={addressInput}
-              onChange={(e) => setAddressInput(e.target.value)}
-            />
+          <div className='relative'>
+            <div className='flex gap-2 mb-3'>
+              <input
+                type="text"
+                className='flex-1 border border-gray-300 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff4d2d] transition'
+                placeholder='Enter your delivery address...'
+                value={addressInput}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setAddressInput(value)
+                  fetchAddressSuggestions(value)
+                }}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              />
 
-            <button
-              className='bg-[#ff4d2d] hover:bg-[#e64526] text-white px-3 py-2 rounded-lg flex items-center justify-center'
-              onClick={getLatLngByAddress}
-            >
-              <IoSearchOutline size={17} />
-            </button>
+              <button
+                className='bg-[#ff4d2d] hover:bg-[#e64526] hover:scale-105 transition-all text-white px-4 py-2 rounded-xl flex items-center justify-center shadow-sm'
+                onClick={getLatLngByAddress}
+              >
+                <IoSearchOutline size={18} />
+              </button>
 
-            <button
-              className='bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center justify-center'
-              onClick={getCurrentLocation}
-            >
-              <TbCurrentLocation size={17} />
-            </button>
+              <button
+                className='bg-blue-500 hover:bg-blue-600 hover:scale-105 transition-all text-white px-4 py-2 rounded-xl flex items-center justify-center shadow-sm'
+                onClick={getCurrentLocation}
+              >
+                <TbCurrentLocation size={18} />
+              </button>
+            </div>
+
+            {showSuggestions && suggestions.length > 0 && (
+              <div className='absolute top-[60px] left-0 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-[1000] max-h-[250px] overflow-y-auto'>
+                {suggestions.map((place, index) => (
+                  <div
+                    key={index}
+                    className='px-4 py-3 hover:bg-orange-50 cursor-pointer text-sm text-gray-700 border-b last:border-b-0'
+                    onClick={() => handleSelectSuggestion(place)}
+                  >
+                    {place.properties.formatted}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className='rounded-xl border overflow-hidden'>
-            <div className='h-64 w-full flex items-center justify-center'>
+          <div className='rounded-2xl border border-[#ffe5de] overflow-hidden shadow-sm hover:shadow-md transition'>
+            <div className='h-72 w-full flex items-center justify-center'>
               <MapContainer
                 className={"w-full h-full"}
                 center={[location?.lat || 28.6139, location?.lon || 77.2090]}
@@ -265,19 +327,20 @@ function CheckOut() {
           </div>
         </section>
 
-        <section>
-          <h2 className='text-lg font-semibold mb-3 text-gray-800'>Payment Method</h2>
+        {/* Payment Method */}
+        <section className='space-y-4'>
+          <h2 className='text-lg font-semibold text-gray-800'>Payment Method</h2>
 
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
             <div
-              className={`flex items-center gap-3 rounded-xl border p-4 text-left transition cursor-pointer ${
+              className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-all duration-300 cursor-pointer hover:shadow-md ${
                 paymentMethod === "cod"
                   ? "border-[#ff4d2d] bg-orange-50 shadow"
                   : "border-gray-200 hover:border-gray-300"
               }`}
               onClick={() => setPaymentMethod("cod")}
             >
-              <span className='inline-flex h-10 w-10 items-center justify-center rounded-full bg-green-100'>
+              <span className='inline-flex h-11 w-11 items-center justify-center rounded-full bg-green-100'>
                 <MdDeliveryDining className='text-green-600 text-xl' />
               </span>
               <div>
@@ -287,31 +350,32 @@ function CheckOut() {
             </div>
 
             <div
-              className={`flex items-center gap-3 rounded-xl border p-4 text-left transition cursor-pointer ${
+              className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-all duration-300 cursor-pointer hover:shadow-md ${
                 paymentMethod === "online"
                   ? "border-[#ff4d2d] bg-orange-50 shadow"
                   : "border-gray-200 hover:border-gray-300"
               }`}
               onClick={() => setPaymentMethod("online")}
             >
-              <span className='inline-flex h-10 w-10 items-center justify-center rounded-full bg-purple-100'>
+              <span className='inline-flex h-11 w-11 items-center justify-center rounded-full bg-purple-100'>
                 <FaMobileScreenButton className='text-purple-700 text-lg' />
               </span>
-              <span className='inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-100'>
+              <span className='inline-flex h-11 w-11 items-center justify-center rounded-full bg-blue-100'>
                 <FaCreditCard className='text-blue-700 text-lg' />
               </span>
               <div>
                 <p className='font-medium text-gray-800'>Online Payment</p>
-                <p className='text-xs text-gray-500'>Pay Securely Online</p>
+                <p className='text-xs text-gray-500'>Pay securely online</p>
               </div>
             </div>
           </div>
         </section>
 
-        <section>
-          <h2 className='text-lg font-semibold mb-3 text-gray-800'>Order Summary</h2>
+        {/* Order Summary */}
+        <section className='space-y-4'>
+          <h2 className='text-lg font-semibold text-gray-800'>Order Summary</h2>
 
-          <div className='rounded-xl border bg-gray-50 p-4 space-y-2'>
+          <div className='rounded-2xl border border-[#ffe5de] bg-[#fffaf8] p-5 space-y-3 shadow-sm'>
             {cartItems?.map((item, index) => (
               <div key={index} className='flex justify-between text-sm text-gray-700'>
                 <span>{item.name} x {item.quantity}</span>
@@ -338,8 +402,9 @@ function CheckOut() {
           </div>
         </section>
 
+        {/* CTA */}
         <button
-          className='w-full bg-[#ff4d2d] hover:bg-[#e64526] text-white py-3 rounded-xl font-semibold disabled:opacity-60'
+          className='w-full bg-[#ff4d2d] hover:bg-[#e64526] hover:scale-[1.01] transition-all text-white py-3.5 rounded-2xl font-semibold shadow-md disabled:opacity-60 disabled:cursor-not-allowed'
           onClick={handlePlaceOrder}
           disabled={loading}
         >
