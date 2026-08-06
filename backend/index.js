@@ -17,12 +17,12 @@ import { socketHandler } from "./socket.js"
 const app=express()
 const server=http.createServer(app)
 
-const io=new Server(server,{
-   cors:{
-    origin:"http://localhost:5173",
-    credentials:true,
-    methods:['POST','GET']
-}
+const io = new Server(server,{
+    cors:{
+        origin: process.env.CLIENT_URL,
+        credentials: true,
+        methods:["GET","POST"]
+    }
 })
 
 app.set("io",io)
@@ -30,9 +30,10 @@ app.set("io",io)
 
 
 const port=process.env.PORT || 5000
+console.log("CLIENT_URL =", process.env.CLIENT_URL);
 app.use(cors({
-    origin:"http://localhost:5173",
-    credentials:true
+    origin: process.env.CLIENT_URL,
+    credentials: true
 }))
 app.use(express.json())
 app.use(cookieParser())
@@ -43,8 +44,9 @@ app.use("/api/item",itemRouter)
 app.use("/api/order",orderRouter)
 
 socketHandler(io)
-server.listen(port,()=>{
-    connectDb()
-    console.log(`server started at ${port}`)
-})
+connectDb();
+
+server.listen(port, () => {
+    console.log(`Server started at ${port}`);
+});
 
