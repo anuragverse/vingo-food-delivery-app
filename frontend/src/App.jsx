@@ -30,7 +30,7 @@ import {
   setSocket
 } from './redux/userSlice'
 
-export const serverUrl = "http://localhost:8000"
+export const serverUrl = import.meta.env.VITE_SERVER_URL;
 
 function App() {
   const { userData, socket } = useSelector(state => state.user)
